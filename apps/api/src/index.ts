@@ -2,12 +2,13 @@ import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
 import authRoutes from './routes/auth';
 import boardsRoutes from './routes/boards';
+import fastifySocketIo from 'fastify-socket.io';
 
 const server = Fastify({ logger: true });
 
 server.register(jwt, { secret: process.env.JWT_SECRET || 'dev-secret' });
 
-server.register(require('@fastify/socket.io'), {
+server.register(fastifySocketIo, {
   cors: {
     origin: '*'
   }
