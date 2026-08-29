@@ -20,6 +20,9 @@ importers:
       fastify:
         specifier: ^4.0.0
         version: 4.29.1
+      fastify-socket.io:
+        specifier: ^5.1.0
+        version: 5.1.0(fastify@4.29.1)(socket.io@4.8.3)
       libphonenumber-js:
         specifier: ^1.9.47
         version: 1.13.12
@@ -27,7 +30,7 @@ importers:
         specifier: ^5.0.0
         version: 5.22.0
       socket.io:
-        specifier: ^4.0.0
+        specifier: ^4.8.3
         version: 4.8.3
       zod:
         specifier: ^3.0.0
@@ -297,6 +300,12 @@ packages:
 
   fastify-plugin@4.5.1:
     resolution: {integrity: sha512-stRHYGeuqpEZTL1Ef0Ovr2ltazUT9g844X5z/zEBFLG8RYlpDiOCIG+ATvYEp+/zmc7sN29mcIMp8gvYplYPIQ==}
+
+  fastify-socket.io@5.1.0:
+    resolution: {integrity: sha512-GC1gjrxBGeTbMWV779XHF4uw3AtgKwSQJ9MnjGiMp91ZBuPXEdBYa7NnAMDEl3oZPgK9JO4BlNncTV+UAN+1kg==}
+    peerDependencies:
+      fastify: 4.x.x
+      socket.io: '>=4'
 
   fastify@4.29.1:
     resolution: {integrity: sha512-m2kMNHIG92tSNWv+Z3UeTR9AWLLuo7KctC7mlFPtMEVrfjIhmQhkQnT9v15qA/BfVq3vvj134Y0jl9SBje3jXQ==}
@@ -620,6 +629,9 @@ packages:
   tsconfig@7.0.0:
     resolution: {integrity: sha512-vZXmzPrL+EmC4T/4rVlT2jNVMWCi/O4DIiSj3UHg1OE5kCKbk4mfrXc6dZksLgRM/TZlKnousKH9bbTazUWRRw==}
 
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -920,6 +932,13 @@ snapshots:
       reusify: 1.1.0
 
   fastify-plugin@4.5.1: {}
+
+  fastify-socket.io@5.1.0(fastify@4.29.1)(socket.io@4.8.3):
+    dependencies:
+      fastify: 4.29.1
+      fastify-plugin: 4.5.1
+      socket.io: 4.8.3
+      tslib: 2.8.1
 
   fastify@4.29.1:
     dependencies:
@@ -1262,6 +1281,8 @@ snapshots:
       '@types/strip-json-comments': 0.0.30
       strip-bom: 3.0.0
       strip-json-comments: 2.0.1
+
+  tslib@2.8.1: {}
 
   typescript@5.9.3: {}
 
