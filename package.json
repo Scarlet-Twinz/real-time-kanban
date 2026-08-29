@@ -9,14 +9,14 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "fastify": "^4.0.0",
-    "@fastify/jwt": "^6.0.0",
-    "socket.io": "^4.0.0",
-    "prisma": "^5.0.0",
+    "@fastify/jwt": "^6.7.1",
     "@prisma/client": "^5.0.0",
+    "bcryptjs": "^2.4.3",
+    "fastify": "^4.0.0",
     "libphonenumber-js": "^1.9.47",
-    "zod": "^3.0.0",
-    "bcryptjs": "^2.4.3"
+    "prisma": "^5.0.0",
+    "socket.io": "^4.0.0",
+    "zod": "^3.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
