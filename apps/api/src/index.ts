@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
 import cors from '@fastify/cors';
-import authRoutes from './routes/auth';
-import boardsRoutes from './routes/boards';
+import authRoutes from './routes/auth.js';
+import boardsRoutes from './routes/boards.js';
 import fastifySocketIo from 'fastify-socket.io';
 
 const server = Fastify({ logger: true });

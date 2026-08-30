@@ -1,0 +1,10 @@
+warning: in the working copy of 'apps/api/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+ apps/api/package.json          |   6 [32m+[m
+ apps/api/src/index.ts          |   4 [32m+[m[31m-[m
+ apps/api/tsconfig.json         |  21 [32m++[m[31m-[m
+ apps/web/pages/boards/[id].tsx | 362 [32m++++++++++++++++++[m[31m-----------------------[m
+ package.json                   |   3 [32m+[m
+ pnpm-lock.yaml                 |  89 [32m++++++++[m[31m--[m
+ 6 files changed, 260 insertions(+), 225 deletions(-)

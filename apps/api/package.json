@@ -14,5 +14,11 @@
     "@fastify/cors": "^8.5.0",
     "fastify-socket.io": "^5.1.0",
     "socket.io": "^4.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1"
+    }
   }
 }
