@@ -2,22 +2,52 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-export default function SortableCard({ card }: { card: any }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: card.id });
+type Card = {
+  id: string;
+  title: string;
+  description?: string;
+};
+
+export default function SortableCard({ card }: { card: Card }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: card.id,
+  });
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    border: '1px solid #eee',
-    padding: 8,
-    marginBottom: 8,
-    borderRadius: 4,
-    background: '#fafafa',
+    touchAction: 'none',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} data-testid={`card-${card.id}`}>
-      <strong>{card.title}</strong>
-      <div style={{ fontSize: 12, color: '#444' }}>{card.description}</div>
-    </div>
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={`kanban-card${isDragging ? ' kanban-card-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+      data-testid={`card-${card.id}`}
+    >
+      <div className="kanban-card-title">
+        {card.title}
+      </div>
+
+      {card.description && (
+        <div className="kanban-card-description">
+          {card.description}
+        </div>
+      )}
+
+      <div className="kanban-card-drag-hint">
+        Drag to move
+      </div>
+    </article>
   );
 }

@@ -2,284 +2,460 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../../src/utils/api';
 import { getAccessToken } from '../../src/utils/auth';
-import { initSocket, joinBoard, leaveBoard, getSocket } from '../../src/hooks/useSocket';
+import {
+  initSocket,
+  joinBoard,
+  leaveBoard,
+  getSocket,
+} from '../../src/hooks/useSocket';
 import Nav from '../../src/components/nav';
+import { DndBoard } from '../../src/components/dnd/DndBoard';
 
-type User = { id: string; name: string; email?: string };
-type Card = { id: string; title: string; description?: string; order: number; columnId: string };
-type Column = { id: string; title: string; order: number; boardId: string; cards?: Card[] };
-type Board = { id: string; title: string; columns?: Column[]; members?: User[] };
+type User = {
+  id: string;
+  name: string;
+  email?: string;
+};
+
+type Card = {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+  columnId: string;
+};
+
+type Column = {
+  id: string;
+  title: string;
+  order: number;
+  boardId: string;
+  cards?: Card[];
+};
+
+type Board = {
+  id: string;
+  title: string;
+  columns?: Column[];
+  members?: User[];
+};
 
 export default function BoardView(): JSX.Element {
   const router = useRouter();
   const { id } = router.query;
+
+  const [mounted, setMounted] = useState(false);
   const [board, setBoard] = useState<Board | null>(null);
   const [colTitle, setColTitle] = useState('');
   const [creatingCol, setCreatingCol] = useState(false);
 
+  /*
+   * Prevent hydration mismatch.
+   */
   useEffect(() => {
-    async function load() {
-      if (!id) return;
+    setMounted(true);
+  }, []);
+
+  /*
+   * Load board and initialize socket.
+   */
+  useEffect(() => {
+    if (!mounted || !id) return;
+
+    let active = true;
+
+    async function loadBoard() {
       try {
         const token = getAccessToken();
-        const res = await api.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
-        const target = (res.data || []).find((b: Board) => b.id === id);
+
+        const res = await api.get('/boards', {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+        });
+
+        if (!active) return;
+
+        const target = (res.data || []).find(
+          (b: Board) => b.id === String(id)
+        );
+
         setBoard(target || null);
+
         initSocket(token || undefined);
         joinBoard(String(id));
       } catch (err) {
-        console.error('load board error', err);
+        console.error('load board error:', err);
       }
     }
-    load();
+
+    loadBoard();
 
     return () => {
-      if (id) leaveBoard(String(id));
-    };
-  }, [id]);
+      active = false;
 
+      if (id) {
+        leaveBoard(String(id));
+      }
+    };
+  }, [mounted, id]);
+
+  /*
+   * Socket events.
+   */
   useEffect(() => {
-    const s = getSocket();
-    if (!s) return;
+    if (!mounted) return;
+
+    const socket = getSocket();
+
+    if (!socket) return;
 
     function onColumnCreated(data: Column) {
-      setBoard((prev: any) => {
+      setBoard((prev) => {
         if (!prev) return prev;
-        if ((prev.columns || []).some((c: Column) => c.id === data.id)) return prev;
-        return { ...prev, columns: [...(prev.columns || []), { ...data, cards: [] }] };
+
+        if (
+          (prev.columns || []).some(
+            (column) => column.id === data.id
+          )
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          columns: [
+            ...(prev.columns || []),
+            {
+              ...data,
+              cards: [],
+            },
+          ],
+        };
       });
     }
 
     function onCardCreated(data: Card) {
-      setBoard((prev: any) => {
+      setBoard((prev) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: Column) => {
-          if (c.id === data.columnId) {
-            if ((c.cards || []).some((card: Card) => card.id === data.id)) return c;
-            return { ...c, cards: [...(c.cards || []), data] };
+
+        const columns = (prev.columns || []).map((column) => {
+          if (column.id !== data.columnId) {
+            return column;
           }
-          return c;
+
+          if (
+            (column.cards || []).some(
+              (card) => card.id === data.id
+            )
+          ) {
+            return column;
+          }
+
+          return {
+            ...column,
+            cards: [
+              ...(column.cards || []),
+              data,
+            ],
+          };
         });
-        return { ...prev, columns: cols };
+
+        return {
+          ...prev,
+          columns,
+        };
       });
     }
 
     function onCardUpdated(data: Card) {
-      setBoard((prev: any) => {
+      setBoard((prev) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: Column) => {
-          return { ...c, cards: (c.cards || []).map((card: Card) => (card.id === data.id ? data : card)) };
-        });
-        return { ...prev, columns: cols };
+
+        const columns = (prev.columns || []).map((column) => ({
+          ...column,
+          cards: (column.cards || []).map((card) =>
+            card.id === data.id ? data : card
+          ),
+        }));
+
+        return {
+          ...prev,
+          columns,
+        };
       });
     }
 
     function onCardDeleted(data: { id: string }) {
-      setBoard((prev: any) => {
+      setBoard((prev) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: Column) => ({
-          ...c,
-          cards: (c.cards || []).filter((card: Card) => card.id !== data.id),
+
+        const columns = (prev.columns || []).map((column) => ({
+          ...column,
+          cards: (column.cards || []).filter(
+            (card) => card.id !== data.id
+          ),
         }));
-        return { ...prev, columns: cols };
+
+        return {
+          ...prev,
+          columns,
+        };
       });
     }
 
-    s.on('column_created', onColumnCreated);
-    s.on('card_created', onCardCreated);
-    s.on('card_updated', onCardUpdated);
-    s.on('card_deleted', onCardDeleted);
+    socket.on('column_created', onColumnCreated);
+    socket.on('card_created', onCardCreated);
+    socket.on('card_updated', onCardUpdated);
+    socket.on('card_deleted', onCardDeleted);
 
     return () => {
-      s.off('column_created', onColumnCreated);
-      s.off('card_created', onCardCreated);
-      s.off('card_updated', onCardUpdated);
-      s.off('card_deleted', onCardDeleted);
+      socket.off('column_created', onColumnCreated);
+      socket.off('card_created', onCardCreated);
+      socket.off('card_updated', onCardUpdated);
+      socket.off('card_deleted', onCardDeleted);
     };
-  }, []);
+  }, [mounted]);
 
-  async function handleCreateColumn(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!colTitle || !board) return;
+  /*
+   * Create a column.
+   */
+  async function handleCreateColumn(
+    event?: React.FormEvent
+  ) {
+    event?.preventDefault();
+
+    const title = colTitle.trim();
+
+    if (!title || !board) return;
+
     setCreatingCol(true);
+
     try {
       const token = getAccessToken();
+
       const res = await api.post(
         `/boards/${board.id}/columns`,
-        { title: colTitle, order: (board.columns || []).length },
-        { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        {
+          title,
+          order: (board.columns || []).length,
+        },
+        {
+          headers: {
+            Authorization: token
+              ? `Bearer ${token}`
+              : '',
+          },
+        }
       );
-      
+
       const createdColumn = res.data;
+
       if (createdColumn) {
-        setBoard((prev: any) => {
+        setBoard((prev) => {
           if (!prev) return prev;
-          if ((prev.columns || []).some((c: Column) => c.id === createdColumn.id)) return prev;
-          return { ...prev, columns: [...(prev.columns || []), { ...createdColumn, cards: [] }] };
+
+          if (
+            (prev.columns || []).some(
+              (column) => column.id === createdColumn.id
+            )
+          ) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            columns: [
+              ...(prev.columns || []),
+              {
+                ...createdColumn,
+                cards: [],
+              },
+            ],
+          };
         });
       }
 
       setColTitle('');
     } catch (err) {
-      console.error('create column failed', err);
+      console.error('create column failed:', err);
     } finally {
       setCreatingCol(false);
     }
   }
 
-  async function handleCreateCard(columnId: string, title: string, description?: string) {
-    if (!title) return;
+  /*
+   * Create a card.
+   */
+  async function handleCreateCard(
+    columnId: string,
+    title: string,
+    description?: string
+  ): Promise<void> {
+    const cleanTitle = title.trim();
+
+    if (!cleanTitle) return;
+
     try {
       const token = getAccessToken();
+
       const res = await api.post(
         `/columns/${columnId}/cards`,
-        { title, description, order: 0 },
-        { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        {
+          title: cleanTitle,
+          description,
+          order: 0,
+        },
+        {
+          headers: {
+            Authorization: token
+              ? `Bearer ${token}`
+              : '',
+          },
+        }
       );
 
       const createdCard = res.data;
-      if (createdCard) {
-        setBoard((prev: any) => {
-          if (!prev) return prev;
-          const cols = (prev.columns || []).map((c: Column) => {
-            if (c.id === columnId) {
-              if ((c.cards || []).some((card: Card) => card.id === createdCard.id)) return c;
-              return { ...c, cards: [...(c.cards || []), createdCard] };
+
+      if (!createdCard) return;
+
+      setBoard((prev) => {
+        if (!prev) return prev;
+
+        const columns = (prev.columns || []).map(
+          (column) => {
+            if (column.id !== columnId) {
+              return column;
             }
-            return c;
-          });
-          return { ...prev, columns: cols };
-        });
-      }
+
+            if (
+              (column.cards || []).some(
+                (card) => card.id === createdCard.id
+              )
+            ) {
+              return column;
+            }
+
+            return {
+              ...column,
+              cards: [
+                ...(column.cards || []),
+                createdCard,
+              ],
+            };
+          }
+        );
+
+        return {
+          ...prev,
+          columns,
+        };
+      });
     } catch (err) {
-      console.error('create card failed', err);
+      console.error('create card failed:', err);
     }
   }
 
-  async function moveCard(cardId: string, direction: 'left' | 'right') {
-    if (!board) return;
-    let sourceColumn: Column | undefined;
-    let sourceColIndex = -1;
-    for (let i = 0; i < (board.columns || []).length; i++) {
-      const c = board.columns![i];
-      if ((c.cards || []).some((card: Card) => card.id === cardId)) {
-        sourceColumn = c;
-        sourceColIndex = i;
-        break;
-      }
-    }
-    if (!sourceColumn) return;
-    const targetIndex = direction === 'left' ? sourceColIndex - 1 : sourceColIndex + 1;
-    if (targetIndex < 0 || targetIndex >= (board.columns || []).length) return;
-    const targetColumn = board.columns![targetIndex];
-    if (!targetColumn) return;
-
-    // Clone columns for optimistic update and building placements
-    const newColumns = (board.columns || []).map(c => ({
-      ...c,
-      cards: [...(c.cards || [])]
-    }));
-
-    const sourceColObj = newColumns.find(c => c.id === sourceColumn!.id);
-    const targetColObj = newColumns.find(c => c.id === targetColumn.id);
-    if (!sourceColObj || !targetColObj) return;
-
-    const movedCardIndex = sourceColObj.cards.findIndex(card => card.id === cardId);
-    if (movedCardIndex === -1) return;
-    const [movedCard] = sourceColObj.cards.splice(movedCardIndex, 1);
-    
-    const updatedCard = { ...movedCard, columnId: targetColumn.id };
-    targetColObj.cards.push(updatedCard);
-
-    // Build placements array for all cards across all columns
-    const placements: { id: string; columnId: string; order: number }[] = [];
-    for (const c of newColumns) {
-      for (let i = 0; i < c.cards.length; i++) {
-        placements.push({
-          id: c.cards[i].id,
-          columnId: c.id,
-          order: i
-        });
-      }
-    }
-
-    // Optimistic UI update
-    setBoard((prev: any) => {
-      if (!prev) return prev;
-      return { ...prev, columns: newColumns };
-    });
-
-    try {
-      const token = getAccessToken();
-      await api.post(
-        `/boards/${board.id}/reorder`,
-        { placements },
-        { headers: { Authorization: token ? `Bearer ${token}` : '' } }
-      );
-    } catch (err) {
-      console.error('batch move failed', err);
-      reloadBoard();
-    }
-  }
-
-  async function reloadBoard() {
+  /*
+   * Reload board from API.
+   */
+  async function reloadBoard(): Promise<void> {
     if (!id) return;
+
     try {
       const token = getAccessToken();
-      const res = await api.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
-      const target = (res.data || []).find((b: Board) => b.id === id);
+
+      const res = await api.get('/boards', {
+        headers: {
+          Authorization: token
+            ? `Bearer ${token}`
+            : '',
+        },
+      });
+
+      const target = (res.data || []).find(
+        (b: Board) => b.id === String(id)
+      );
+
       setBoard(target || null);
     } catch (err) {
-      console.error('reload board failed', err);
+      console.error('reload board failed:', err);
     }
   }
 
-  if (!board) return <div style={{ padding: 24 }}>Loading board...</div>;
+  /*
+   * Do not render browser-dependent board UI during SSR.
+   */
+  if (!mounted) {
+    return (
+      <main className="container">
+        <div style={{ padding: 24 }}>
+          Loading board...
+        </div>
+      </main>
+    );
+  }
+
+  if (!board) {
+    return (
+      <main className="container">
+        <Nav />
+
+        <div style={{ padding: 24 }}>
+          Loading board...
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container">
       <Nav />
-      <h1>{board.title}</h1>
 
-      <form onSubmit={handleCreateColumn} className="form" style={{ marginBottom: 12 }}>
-        <input className="input" placeholder="New column title" value={colTitle} onChange={e => setColTitle(e.target.value)} />
-        <button className="btn" type="submit" disabled={creatingCol}>{creatingCol ? 'Creating…' : 'Create column'}</button>
+      <div className="header">
+        <div>
+          <h1>{board.title}</h1>
+
+          <p className="small">
+            Organize your work with columns and
+            draggable cards.
+          </p>
+        </div>
+      </div>
+
+      <form
+        onSubmit={handleCreateColumn}
+        className="create-controls"
+      >
+        <input
+          className="input"
+          placeholder="New column title"
+          value={colTitle}
+          onChange={(event) =>
+            setColTitle(event.target.value)
+          }
+          disabled={creatingCol}
+        />
+
+        <button
+          className="btn"
+          type="submit"
+          disabled={
+            creatingCol || !colTitle.trim()
+          }
+        >
+          {creatingCol
+            ? 'Creating…'
+            : 'Create column'}
+        </button>
       </form>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        {(board.columns || []).map((col: Column) => (
-          <section key={col.id} style={{ width: 260, background: '#fff', padding: 8, borderRadius: 6 }}>
-            <h3>{col.title}</h3>
-            <CreateCardForm columnId={col.id} onCreate={handleCreateCard} />
-            <ul>
-              {(col.cards || []).map((card: Card) => (
-                <li key={card.id} style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong>{card.title}</strong>
-                    <div>
-                      <button onClick={() => moveCard(card.id, 'left')} style={{ marginRight: 6 }} aria-label="Move left">◀</button>
-                      <button onClick={() => moveCard(card.id, 'right')} aria-label="Move right">▶</button>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#444' }}>{card.description}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
+      <DndBoard
+        board={board}
+        setBoard={setBoard}
+        reloadBoard={reloadBoard}
+        onCreateCard={handleCreateCard}
+      />
     </main>
-  );
-}
-
-function CreateCardForm({ columnId, onCreate }: { columnId: string; onCreate: (colId: string, title: string, desc?: string) => void }) {
-  const [title, setTitle] = useState('');
-  const [desc, sethDesc] = useState('');
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onCreate(columnId, title, desc); setTitle(''); sethDesc(''); }} style={{ marginBottom: 8 }}>
-      <input className="input" placeholder="Card title" value={title} onChange={e => setTitle(e.target.value)} />
-      <input className="input" placeholder="Description (optional)" value={desc} onChange={e => sethDesc(e.target.value)} />
-      <button className="btn" type="submit">Add card</button>
-    </form>
   );
 }

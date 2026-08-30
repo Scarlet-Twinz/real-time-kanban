@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
   DndContext as BaseDndContext,
@@ -12,39 +12,78 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+
 import SortableCard from './SortableCard';
 import { getAccessToken } from '../../../src/utils/auth';
 import { api } from '../../../src/utils/api';
 
-// Cast DndContext to avoid React 18 / TypeScript type mismatch errors
 const DndContext = BaseDndContext as unknown as React.FC<any>;
 
 type Props = {
   board: any;
   setBoard: (b: any) => void;
   reloadBoard: () => Promise<void>;
+  onCreateCard: (
+    columnId: string,
+    title: string,
+    description?: string
+  ) => Promise<void>;
 };
 
-export default function DndBoardClient({ board, setBoard, reloadBoard }: Props) {
-  const sensors = useSensors(useSensor(PointerSensor));
+export default function DndBoardClient({
+  board,
+  setBoard,
+  reloadBoard,
+  onCreateCard,
+}: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    })
+  );
 
   function findCardPosition(cardId: string) {
     if (!board) return null;
-    for (let ci = 0; ci < (board.columns || []).length; ci++) {
-      const c = board.columns[ci];
-      const idx = (c.cards || []).findIndex((card: any) => card.id === cardId);
-      if (idx >= 0) return { columnId: c.id, index: idx };
+
+    for (const column of board.columns || []) {
+      const index = (column.cards || []).findIndex(
+        (card: any) => card.id === cardId
+      );
+
+      if (index >= 0) {
+        return {
+          columnId: column.id,
+          index,
+        };
+      }
     }
+
     return null;
   }
 
-  async function commitReorder(placements: { id: string; columnId: string; order: number }[]) {
+  async function commitReorder(
+    placements: {
+      id: string;
+      columnId: string;
+      order: number;
+    }[]
+  ) {
     if (!board) return;
+
     try {
       const token = getAccessToken();
-      await api.post(`/boards/${board.id}/reorder`, { placements }, {
-        headers: { Authorization: token ? `Bearer ${token}` : '' }
-      });
+
+      await api.post(
+        `/boards/${board.id}/reorder`,
+        { placements },
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+        }
+      );
     } catch (err) {
       console.error('reorder failed', err);
       await reloadBoard();
@@ -53,42 +92,181 @@ export default function DndBoardClient({ board, setBoard, reloadBoard }: Props) 
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+
     if (!active || !over || !board) return;
-    const activeId = active.id as string;
-    const overId = over.id as string;
 
-    let destColumnId: string | null = null;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    if (activeId === overId) return;
+
+    const source = findCardPosition(activeId);
+
+    if (!source) return;
+
+    let destinationColumnId: string | null = null;
+
     if (overId.startsWith('col-')) {
-      destColumnId = overId.replace('col-', '');
+      destinationColumnId = overId.replace('col-', '');
     } else {
-      const pos = findCardPosition(overId);
-      if (pos) destColumnId = pos.columnId;
+      const destination = findCardPosition(overId);
+
+      if (destination) {
+        destinationColumnId = destination.columnId;
+      }
     }
-    const srcPos = findCardPosition(activeId);
-    if (!srcPos || !destColumnId) return;
 
-    const newColumns = board.columns.map((c: any) => ({ ...c, cards: [...(c.cards || [])] }));
-    const srcCol = newColumns.find((c: any) => c.id === srcPos.columnId)!;
-    const movingCard = srcCol.cards.splice(srcPos.index, 1)[0];
+    if (!destinationColumnId) return;
 
-    let insertIndex = newColumns.find((c: any) => c.id === destColumnId)!.cards.length;
+    const newColumns = (board.columns || []).map(
+      (column: any) => ({
+        ...column,
+        cards: [...(column.cards || [])],
+      })
+    );
+
+    const sourceColumn = newColumns.find(
+      (column: any) => column.id === source.columnId
+    );
+
+    const destinationColumn = newColumns.find(
+      (column: any) => column.id === destinationColumnId
+    );
+
+    if (!sourceColumn || !destinationColumn) return;
+
+    const movingCard = sourceColumn.cards.splice(
+      source.index,
+      1
+    )[0];
+
+    if (!movingCard) return;
+
+    let insertIndex = destinationColumn.cards.length;
+
     if (!overId.startsWith('col-')) {
-      const destPos = findCardPosition(overId);
-      if (destPos) {
-        insertIndex = destPos.index;
+      const destinationIndex =
+        destinationColumn.cards.findIndex(
+          (card: any) => card.id === overId
+        );
+
+      if (destinationIndex >= 0) {
+        insertIndex = destinationIndex;
       }
     }
 
-    newColumns.find((c: any) => c.id === destColumnId)!.cards.splice(insertIndex, 0, { ...movingCard, columnId: destColumnId });
+    destinationColumn.cards.splice(insertIndex, 0, {
+      ...movingCard,
+      columnId: destinationColumn.id,
+    });
 
-    const placements: { id: string; columnId: string; order: number }[] = [];
-    for (const c of newColumns) {
-      for (let i = 0; i < (c.cards || []).length; i++) {
-        placements.push({ id: c.cards[i].id, columnId: c.id, order: i });
+    const placements: {
+      id: string;
+      columnId: string;
+      order: number;
+    }[] = [];
+
+    for (const column of newColumns) {
+      for (
+        let index = 0;
+        index < column.cards.length;
+        index++
+      ) {
+        placements.push({
+          id: column.cards[index].id,
+          columnId: column.id,
+          order: index,
+        });
       }
     }
 
-    setBoard((prev: any) => ({ ...prev, columns: newColumns }));
+    setBoard((prev: any) => ({
+      ...prev,
+      columns: newColumns,
+    }));
+
+    await commitReorder(placements);
+  }
+
+  async function moveCard(
+    cardId: string,
+    direction: 'left' | 'right'
+  ) {
+    if (!board) return;
+
+    const source = findCardPosition(cardId);
+
+    if (!source) return;
+
+    const columns = board.columns || [];
+
+    const sourceColumnIndex = columns.findIndex(
+      (column: any) => column.id === source.columnId
+    );
+
+    if (sourceColumnIndex === -1) return;
+
+    const targetColumnIndex =
+      direction === 'left'
+        ? sourceColumnIndex - 1
+        : sourceColumnIndex + 1;
+
+    if (
+      targetColumnIndex < 0 ||
+      targetColumnIndex >= columns.length
+    ) {
+      return;
+    }
+
+    const newColumns = columns.map((column: any) => ({
+      ...column,
+      cards: [...(column.cards || [])],
+    }));
+
+    const sourceColumn = newColumns[sourceColumnIndex];
+    const targetColumn = newColumns[targetColumnIndex];
+
+    const cardIndex = sourceColumn.cards.findIndex(
+      (card: any) => card.id === cardId
+    );
+
+    if (cardIndex === -1) return;
+
+    const [movingCard] = sourceColumn.cards.splice(
+      cardIndex,
+      1
+    );
+
+    targetColumn.cards.push({
+      ...movingCard,
+      columnId: targetColumn.id,
+    });
+
+    const placements: {
+      id: string;
+      columnId: string;
+      order: number;
+    }[] = [];
+
+    for (const column of newColumns) {
+      for (
+        let index = 0;
+        index < column.cards.length;
+        index++
+      ) {
+        placements.push({
+          id: column.cards[index].id,
+          columnId: column.id,
+          order: index,
+        });
+      }
+    }
+
+    setBoard((prev: any) => ({
+      ...prev,
+      columns: newColumns,
+    }));
+
     await commitReorder(placements);
   }
 
@@ -98,22 +276,224 @@ export default function DndBoardClient({ board, setBoard, reloadBoard }: Props) 
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        {(board.columns || []).map((col: any) => (
-          <div key={col.id} id={`col-${col.id}`} style={{ width: 260, background: '#fff', padding: 8, borderRadius: 6 }}>
-            <h3>{col.title}</h3>
-            <SortableContext items={(col.cards || []).map((c: any) => c.id)} strategy={verticalListSortingStrategy}>
-              <div>
-                {(col.cards || []).map((card: any) => (
-                  <SortableCard key={card.id} card={card} />
-                ))}
-              </div>
-            </SortableContext>
-          </div>
+      <section className="kanban-board">
+        {(board.columns || []).map((column: any) => (
+          <KanbanColumn
+            key={column.id}
+            column={column}
+            onCreateCard={onCreateCard}
+            onMoveCard={moveCard}
+            columnIndex={(board.columns || []).findIndex(
+              (c: any) => c.id === column.id
+            )}
+            totalColumns={(board.columns || []).length}
+          />
         ))}
-      </div>
+      </section>
     </DndContext>
   );
 }
 
-export const DndBoard = dynamic(() => Promise.resolve((props: Props) => <DndBoardClient {...props} />), { ssr: false });
+function KanbanColumn({
+  column,
+  onCreateCard,
+  onMoveCard,
+  columnIndex,
+  totalColumns,
+}: {
+  column: any;
+  onCreateCard: (
+    columnId: string,
+    title: string,
+    description?: string
+  ) => Promise<void>;
+  onMoveCard: (
+    cardId: string,
+    direction: 'left' | 'right'
+  ) => Promise<void>;
+  columnIndex: number;
+  totalColumns: number;
+}) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!title.trim()) return;
+
+    setCreating(true);
+
+    try {
+      await onCreateCard(
+        column.id,
+        title.trim(),
+        description.trim() || undefined
+      );
+
+      setTitle('');
+      setDescription('');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <section
+      className="kanban-column"
+      id={`col-${column.id}`}
+    >
+      <div className="kanban-column-header">
+        <div>
+          <h3>{column.title}</h3>
+
+          <span className="kanban-column-count">
+            {(column.cards || []).length}{' '}
+            {(column.cards || []).length === 1
+              ? 'card'
+              : 'cards'}
+          </span>
+        </div>
+      </div>
+
+      <form
+        className="kanban-create-card"
+        onSubmit={handleSubmit}
+      >
+        <input
+          className="input"
+          placeholder="Card title"
+          value={title}
+          onChange={(event) =>
+            setTitle(event.target.value)
+          }
+        />
+
+        <input
+          className="input"
+          placeholder="Description (optional)"
+          value={description}
+          onChange={(event) =>
+            setDescription(event.target.value)
+          }
+        />
+
+        <button
+          className="btn"
+          type="submit"
+          disabled={creating || !title.trim()}
+        >
+          {creating ? 'Adding…' : 'Add card'}
+        </button>
+      </form>
+
+      <SortableContext
+        items={(column.cards || []).map(
+          (card: any) => card.id
+        )}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="kanban-card-list">
+          {(column.cards || []).map((card: any) => (
+            <div
+              key={card.id}
+              style={{
+                position: 'relative',
+              }}
+            >
+              <SortableCard card={card} />
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 6,
+                  marginTop: -6,
+                  marginBottom: 10,
+                  paddingRight: 4,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    onMoveCard(card.id, 'left')
+                  }
+                  disabled={columnIndex === 0}
+                  aria-label="Move card left"
+                  title="Move card left"
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(255,255,255,.08)',
+                    background:
+                      'rgba(255,255,255,.04)',
+                    color: 'var(--text)',
+                    cursor:
+                      columnIndex === 0
+                        ? 'not-allowed'
+                        : 'pointer',
+                    opacity:
+                      columnIndex === 0 ? 0.35 : 1,
+                    boxShadow: 'none',
+                  }}
+                >
+                  ◀
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onMoveCard(card.id, 'right')
+                  }
+                  disabled={
+                    columnIndex === totalColumns - 1
+                  }
+                  aria-label="Move card right"
+                  title="Move card right"
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(255,255,255,.08)',
+                    background:
+                      'rgba(255,255,255,.04)',
+                    color: 'var(--text)',
+                    cursor:
+                      columnIndex ===
+                      totalColumns - 1
+                        ? 'not-allowed'
+                        : 'pointer',
+                    opacity:
+                      columnIndex ===
+                      totalColumns - 1
+                        ? 0.35
+                        : 1,
+                    boxShadow: 'none',
+                  }}
+                >
+                  ▶
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {(column.cards || []).length === 0 && (
+            <div className="kanban-empty">
+              Drop a card here
+            </div>
+          )}
+        </div>
+      </SortableContext>
+    </section>
+  );
+}
+
+export const DndBoard = dynamic(
+  () =>
+    Promise.resolve(
+      (props: Props) => (
+        <DndBoardClient {...props} />
+      )
+    ),
+  { ssr: false }
+);

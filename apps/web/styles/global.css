@@ -1,50 +1,508 @@
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f4f5f7;
-  color: #333;
-  margin: 0;
-  padding: 20px;
+:root {
+  --bg: #0f1724;
+  --card: #0b1220;
+  --surface: #111a2b;
+  --surface-2: #162238;
+  --muted: #94a3b8;
+  --text: #e6eef8;
+  --accent: #4f46e5;
+  --accent-2: #06b6d4;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --glass: rgba(255, 255, 255, 0.035);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --radius: 12px;
+  --gap: 16px;
+  --shadow: 0 10px 30px rgba(2, 6, 23, 0.45);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    "Segoe UI Mono", monospace;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.container {
-  max-width: 800px;
-  margin: 40px auto;
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+* {
+  box-sizing: border-box;
 }
+
+html,
+body,
+#__next {
+  min-height: 100%;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--sans);
+  background:
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), transparent 32%),
+    linear-gradient(180deg, #080c14 0%, #0f1724 100%);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================
+   Layout
+   ========================= */
+
+.container {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+.header,
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+nav a:hover {
+  color: var(--text);
+}
+
+.site-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  background: rgba(11, 18, 32, 0.82);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+/* =========================
+   Typography
+   ========================= */
+
+h1 {
+  margin: 0 0 18px;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+h2,
+h3 {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+/* =========================
+   Forms
+   ========================= */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  max-width: 560px;
 }
 
-.input {
-  padding: 10px;
+.input,
+input,
+textarea,
+select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
   font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-.btn {
-  padding: 10px 16px;
-  background: #0070f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
+.input::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: rgba(148, 163, 184, 0.65);
 }
 
-.btn:hover {
-  background: #0051a2;
+.input:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(79, 70, 229, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
+/* =========================
+   Buttons
+   ========================= */
+
+.btn,
+button {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 15px;
+  border-radius: 9px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  color: #fff;
+  font-weight: 650;
+  box-shadow: 0 7px 18px rgba(79, 70, 229, 0.16);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.btn:hover:not(:disabled),
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.24);
+}
+
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  box-shadow: none;
+}
+
+/* =========================
+   Existing board styles
+   ========================= */
+
+.board-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap);
+  overflow-x: auto;
+  padding: 4px 2px 20px;
+}
+
+.column {
+  flex: 0 0 300px;
+  min-width: 280px;
+  max-width: 340px;
+  padding: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: rgba(17, 26, 43, 0.72);
+  box-shadow: var(--shadow);
+}
+
+.column h3 {
+  margin-bottom: 10px;
+}
+
+.card {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+}
+
+.card .meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* =========================
+   DnD Kanban board
+   ========================= */
+
+.kanban-board {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 2px 24px;
+  scrollbar-width: thin;
+}
+
+.kanban-column {
+  flex: 0 0 300px;
+  min-height: 360px;
+  padding: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.018)
+    );
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.28);
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.kanban-column-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.kanban-column-count {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kanban-create-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.kanban-create-card .input {
+  width: 100%;
+}
+
+.kanban-create-card .btn {
+  width: 100%;
+}
+
+.kanban-card-list {
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-card {
+  position: relative;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(8, 15, 28, 0.82);
+  color: var(--text);
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.18);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.kanban-card:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card-dragging {
+  opacity: 0.75;
+  border-color: rgba(99, 102, 241, 0.8);
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.4);
+}
+
+.kanban-card-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.kanban-card-description {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.kanban-card-drag-hint {
+  margin-top: 10px;
+  color: rgba(148, 163, 184, 0.65);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kanban-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  padding: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* =========================
+   Utilities
+   ========================= */
+
+.drag-overlay {
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+}
+
+.kv {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.space-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.create-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.create-controls .input {
+  flex: 1;
+}
+
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code,
+pre {
+  font-family: var(--mono);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+code {
+  padding: 3px 6px;
+}
+
+pre {
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+@media (max-width: 880px) {
+  .container {
+    width: min(100% - 20px, 1200px);
+    padding-top: 16px;
+  }
+
+  .kanban-board {
+    gap: 12px;
+  }
+
+  .kanban-column {
+    flex-basis: 270px;
+    min-height: 320px;
+  }
+
+  .column {
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: calc(100% - 16px);
+  }
+
+  .kanban-column {
+    flex-basis: 260px;
+  }
+
+  .header,
+  nav,
+  .site-top {
+    flex-wrap: wrap;
+  }
 }

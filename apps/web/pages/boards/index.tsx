@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../src/utils/api';
 import { getAccessToken } from '../../src/utils/auth';
 import { useRouter } from 'next/router';
-import Nav from '../../src/components/Nav';
+import Nav from '../../src/components/nav';
 
 export default function BoardsPage() {
   const [boards, setBoards] = useState<any[]>([]);
