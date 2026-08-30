@@ -179,4 +179,49 @@ export default async function boardsRoutes(server: FastifyInstance) {
       return reply.status(500).send({ error: 'server error' });
     }
   });
+
+  /**
+   * Batch reorder endpoint
+   * POST /boards/:boardId/reorder
+   * Body: { placements: Array<{ id: string, columnId: string, order: number }> }
+   * Returns: { cards: Card[] }
+   */
+  server.post('/boards/:boardId/reorder', { preHandler: [requireAuth] }, async (request: any, reply) => {
+    const { boardId } = request.params as any;
+    const { placements } = request.body as any;
+    if (!Array.isArray(placements) || placements.length === 0) {
+      return reply.status(400).send({ error: 'placements array required' });
+    }
+
+    try {
+      const board = await prisma.board.findUnique({ where: { id: boardId }, include: { columns: true } });
+      if (!board) return reply.status(404).send({ error: 'board not found' });
+
+      const validColumnIds = new Set((board.columns || []).map((c: any) => c.id));
+      for (const p of placements) {
+        if (!p.id || !p.columnId || typeof p.order !== 'number') {
+          return reply.status(400).send({ error: 'each placement must have id, columnId, and order' });
+        }
+        if (!validColumnIds.has(p.columnId)) {
+          return reply.status(400).send({ error: `invalid columnId: ${p.columnId}` });
+        }
+      }
+
+      const updates = placements.map((p: any) =>
+        prisma.card.update({
+          where: { id: p.id },
+          data: { columnId: p.columnId, order: p.order },
+        })
+      );
+
+      const updatedCards = await prisma.$transaction(updates);
+
+      server.io.to(`board:${boardId}`).emit('cards_reordered', updatedCards);
+
+      return reply.send({ cards: updatedCards });
+    } catch (err: any) {
+      request.log.error(err);
+      return reply.status(500).send({ error: 'server error' });
+    }
+  });
 }
