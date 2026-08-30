@@ -110,7 +110,6 @@ export default function BoardView(): JSX.Element {
         { headers: { Authorization: token ? `Bearer ${token}` : '' } }
       );
       
-      // Immediately update local state with the newly created column from API response
       const createdColumn = res.data;
       if (createdColumn) {
         setBoard((prev: any) => {
@@ -138,7 +137,6 @@ export default function BoardView(): JSX.Element {
         { headers: { Authorization: token ? `Bearer ${token}` : '' } }
       );
 
-      // Immediately update local state with the newly created card from API response
       const createdCard = res.data;
       if (createdCard) {
         setBoard((prev: any) => {
@@ -176,31 +174,50 @@ export default function BoardView(): JSX.Element {
     const targetColumn = board.columns![targetIndex];
     if (!targetColumn) return;
 
+    // Clone columns for optimistic update and building placements
+    const newColumns = (board.columns || []).map(c => ({
+      ...c,
+      cards: [...(c.cards || [])]
+    }));
+
+    const sourceColObj = newColumns.find(c => c.id === sourceColumn!.id);
+    const targetColObj = newColumns.find(c => c.id === targetColumn.id);
+    if (!sourceColObj || !targetColObj) return;
+
+    const movedCardIndex = sourceColObj.cards.findIndex(card => card.id === cardId);
+    if (movedCardIndex === -1) return;
+    const [movedCard] = sourceColObj.cards.splice(movedCardIndex, 1);
+    
+    const updatedCard = { ...movedCard, columnId: targetColumn.id };
+    targetColObj.cards.push(updatedCard);
+
+    // Build placements array for all cards across all columns
+    const placements: { id: string; columnId: string; order: number }[] = [];
+    for (const c of newColumns) {
+      for (let i = 0; i < c.cards.length; i++) {
+        placements.push({
+          id: c.cards[i].id,
+          columnId: c.id,
+          order: i
+        });
+      }
+    }
+
+    // Optimistic UI update
     setBoard((prev: any) => {
       if (!prev) return prev;
-      const cols = prev.columns!.map((c: Column) => {
-        if (c.id === sourceColumn!.id) {
-          return { ...c, cards: (c.cards || []).filter((card: Card) => card.id !== cardId) };
-        }
-        if (c.id === targetColumn.id) {
-          const movedCard = (sourceColumn!.cards || []).find((card: Card) => card.id === cardId);
-          return { ...c, cards: [...(c.cards || []), movedCard!] };
-        }
-        return c;
-      });
-      return { ...prev, columns: cols };
+      return { ...prev, columns: newColumns };
     });
 
     try {
       const token = getAccessToken();
-      const order = targetColumn.cards?.length ?? 0;
-      await api.put(
-        `/cards/${cardId}`,
-        { columnId: targetColumn.id, order },
+      await api.post(
+        `/boards/${board.id}/reorder`,
+        { placements },
         { headers: { Authorization: token ? `Bearer ${token}` : '' } }
       );
     } catch (err) {
-      console.error('move card failed', err);
+      console.error('batch move failed', err);
       reloadBoard();
     }
   }
