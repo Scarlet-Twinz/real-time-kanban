@@ -36,14 +36,16 @@ export default function BoardView() {
   useEffect(() => {
     const s = getSocket();
     if (!s) return;
+
     function onColumnCreated(data: any) {
-      setBoard(prev => {
+      setBoard((prev: any) => {
         if (!prev) return prev;
         return { ...prev, columns: [...(prev.columns || []), { ...data, cards: [] }] };
       });
     }
+
     function onCardCreated(data: any) {
-      setBoard(prev => {
+      setBoard((prev: any) => {
         if (!prev) return prev;
         const cols = (prev.columns || []).map((c: any) =>
           c.id === data.columnId ? { ...c, cards: [...(c.cards || []), data] } : c
@@ -51,8 +53,9 @@ export default function BoardView() {
         return { ...prev, columns: cols };
       });
     }
+
     function onCardUpdated(data: any) {
-      setBoard(prev => {
+      setBoard((prev: any) => {
         if (!prev) return prev;
         const cols = (prev.columns || []).map((c: any) => {
           return { ...c, cards: (c.cards || []).map((card: any) => (card.id === data.id ? data : card)) };
@@ -60,8 +63,9 @@ export default function BoardView() {
         return { ...prev, columns: cols };
       });
     }
+
     function onCardDeleted(data: any) {
-      setBoard(prev => {
+      setBoard((prev: any) => {
         if (!prev) return prev;
         const cols = (prev.columns || []).map((c: any) => ({
           ...c,
