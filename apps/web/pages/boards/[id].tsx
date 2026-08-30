@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { api } from '../../src/utils/api';
 import { getAccessToken } from '../../src/utils/auth';
 import { initSocket, joinBoard, leaveBoard, getSocket } from '../../src/hooks/useSocket';
-import Nav from '../../src/components/Nav';
+import Nav from '../../src/components/nav';
 
 type User = { id: string; name: string; email?: string };
 type Card = { id: string; title: string; description?: string; order: number; columnId: string };
