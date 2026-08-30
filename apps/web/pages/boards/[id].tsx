@@ -274,11 +274,11 @@ export default function BoardView(): JSX.Element {
 
 function CreateCardForm({ columnId, onCreate }: { columnId: string; onCreate: (colId: string, title: string, desc?: string) => void }) {
   const [title, setTitle] = useState('');
-  const [desc, setDesc] = useState('');
+  const [desc, sethDesc] = useState('');
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onCreate(columnId, title, desc); setTitle(''); setDesc(''); }} style={{ marginBottom: 8 }}>
+    <form onSubmit={(e) => { e.preventDefault(); onCreate(columnId, title, desc); setTitle(''); sethDesc(''); }} style={{ marginBottom: 8 }}>
       <input className="input" placeholder="Card title" value={title} onChange={e => setTitle(e.target.value)} />
-      <input className="input" placeholder="Description (optional)" value={desc} onChange={e => setDesc(e.target.value)} />
+      <input className="input" placeholder="Description (optional)" value={desc} onChange={e => sethDesc(e.target.value)} />
       <button className="btn" type="submit">Add card</button>
     </form>
   );

@@ -1,0 +1,75 @@
+name: E2E Playwright
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kanban_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kanban_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client & run migrations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kanban_test
+        run: |
+          npx prisma generate --schema=prisma/schema.prisma
+          npx prisma migrate deploy --schema=prisma/schema.prisma || true
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start API (background)
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kanban_test
+          JWT_SECRET: testsecret
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+        run: |
+          cd apps/api
+          pnpm dev &
+
+      - name: Start Web (background)
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+        run: |
+          cd apps/web
+          pnpm dev &
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:4000/health http://localhost:3000 || (sleep 5 && npx wait-on http://localhost:4000/health http://localhost:3000)
+
+      - name: Run Playwright E2E
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: |
+          npx playwright test tests/e2e --config=tests/e2e/playwright.config.ts --reporter=list

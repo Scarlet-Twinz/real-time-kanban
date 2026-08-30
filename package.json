@@ -1,31 +1,19 @@
 {
-  "name": "api",
+  "name": "kanban-monorepo",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.ts",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
-  },
-  "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "@fastify/cors": "^8.5.0",
-    "@fastify/jwt": "^6.7.1",
-    "@prisma/client": "^5.0.0",
-    "bcryptjs": "^2.4.3",
-    "fastify": "^4.0.0",
-    "fastify-socket.io": "^5.1.0",
-    "libphonenumber-js": "^1.9.47",
-    "prisma": "^5.0.0",
-    "socket.io": "^4.8.3",
-    "zod": "^3.0.0"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test:e2e": "npx playwright test tests/e2e --config=tests/e2e/playwright.config.ts"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "ts-node-dev": "^2.0.0",
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^26.4.0",
     "turbo": "^2.10.12",
     "typescript": "^5.0.0"
   }
