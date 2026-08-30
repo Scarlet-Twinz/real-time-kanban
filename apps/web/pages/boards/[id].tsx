@@ -45,6 +45,7 @@ export default function BoardView(): JSX.Element {
     function onColumnCreated(data: Column) {
       setBoard((prev: any) => {
         if (!prev) return prev;
+        if ((prev.columns || []).some((c: Column) => c.id === data.id)) return prev;
         return { ...prev, columns: [...(prev.columns || []), { ...data, cards: [] }] };
       });
     }
@@ -52,9 +53,13 @@ export default function BoardView(): JSX.Element {
     function onCardCreated(data: Card) {
       setBoard((prev: any) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: Column) =>
-          c.id === data.columnId ? { ...c, cards: [...(c.cards || []), data] } : c
-        );
+        const cols = (prev.columns || []).map((c: Column) => {
+          if (c.id === data.columnId) {
+            if ((c.cards || []).some((card: Card) => card.id === data.id)) return c;
+            return { ...c, cards: [...(c.cards || []), data] };
+          }
+          return c;
+        });
         return { ...prev, columns: cols };
       });
     }
@@ -99,11 +104,22 @@ export default function BoardView(): JSX.Element {
     setCreatingCol(true);
     try {
       const token = getAccessToken();
-      await api.post(
+      const res = await api.post(
         `/boards/${board.id}/columns`,
         { title: colTitle, order: (board.columns || []).length },
         { headers: { Authorization: token ? `Bearer ${token}` : '' } }
       );
+      
+      // Immediately update local state with the newly created column from API response
+      const createdColumn = res.data;
+      if (createdColumn) {
+        setBoard((prev: any) => {
+          if (!prev) return prev;
+          if ((prev.columns || []).some((c: Column) => c.id === createdColumn.id)) return prev;
+          return { ...prev, columns: [...(prev.columns || []), { ...createdColumn, cards: [] }] };
+        });
+      }
+
       setColTitle('');
     } catch (err) {
       console.error('create column failed', err);
@@ -116,11 +132,27 @@ export default function BoardView(): JSX.Element {
     if (!title) return;
     try {
       const token = getAccessToken();
-      await api.post(
+      const res = await api.post(
         `/columns/${columnId}/cards`,
         { title, description, order: 0 },
         { headers: { Authorization: token ? `Bearer ${token}` : '' } }
       );
+
+      // Immediately update local state with the newly created card from API response
+      const createdCard = res.data;
+      if (createdCard) {
+        setBoard((prev: any) => {
+          if (!prev) return prev;
+          const cols = (prev.columns || []).map((c: Column) => {
+            if (c.id === columnId) {
+              if ((c.cards || []).some((card: Card) => card.id === createdCard.id)) return c;
+              return { ...c, cards: [...(c.cards || []), createdCard] };
+            }
+            return c;
+          });
+          return { ...prev, columns: cols };
+        });
+      }
     } catch (err) {
       console.error('create card failed', err);
     }
