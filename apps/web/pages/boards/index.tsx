@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { api } from '../../src/utils/api';
 import { getAccessToken } from '../../src/utils/auth';
 import { useRouter } from 'next/router';
+import Nav from '../../src/components/Nav';
 
 export default function BoardsPage() {
   const [boards, setBoards] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function BoardsPage() {
     async function load() {
       try {
         const token = getAccessToken();
-        const res = await axios.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+        const res = await api.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
         setBoards(res.data || []);
       } catch (err) {
         console.error('failed to load boards', err);
@@ -26,26 +27,27 @@ export default function BoardsPage() {
     if (!title) return;
     try {
       const token = getAccessToken();
-      const res = await axios.post('/boards', { title }, { headers: { Authorization: token ? `Bearer ${token}` : '' } });
-      setBoards(prev => [res.data, ...prev]);
-      setTitle('');
+      const res = await api.post('/boards', { title }, { headers: { Authorization: token ? `Bearer ${token}` : '' } });
       router.push(`/boards/${res.data.id}`);
+      setTitle('');
     } catch (err) {
       console.error('create board failed', err);
     }
   }
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="container">
+      <Nav />
       <h1>Your Boards</h1>
-      <form onSubmit={createBoard} style={{ marginBottom: 16 }}>
-        <input placeholder="New board title" value={title} onChange={e => setTitle(e.target.value)} />
-        <button type="submit">Create</button>
+
+      <form onSubmit={createBoard} style={{ marginBottom: 16 }} className="form">
+        <input className="input" placeholder="New board title" value={title} onChange={e => setTitle(e.target.value)} />
+        <button className="btn" type="submit">Create board</button>
       </form>
 
       <ul>
         {boards.map(b => (
-          <li key={b.id}>
+          <li key={b.id} style={{ marginBottom: 8 }}>
             <a href={`/boards/${b.id}`}>{b.title}</a> — members: {b.members?.length ?? 0}
           </li>
         ))}

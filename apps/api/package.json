@@ -11,6 +11,7 @@
     "build": "turbo build"
   },
   "dependencies": {
+    "@fastify/cors": "^8.5.0",
     "fastify-socket.io": "^5.1.0",
     "socket.io": "^4.8.3"
   }

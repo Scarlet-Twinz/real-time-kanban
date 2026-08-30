@@ -1,17 +1,25 @@
 import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
+import cors from '@fastify/cors';
 import authRoutes from './routes/auth';
 import boardsRoutes from './routes/boards';
 import fastifySocketIo from 'fastify-socket.io';
 
 const server = Fastify({ logger: true });
 
-server.register(jwt, { secret: process.env.JWT_SECRET || 'dev-secret' });
+server.register(cors, {
+  origin: 'http://localhost:3000',
+  credentials: true,
+});
+
+server.register(jwt, {
+  secret: process.env.JWT_SECRET || 'dev-secret',
+});
 
 server.register(fastifySocketIo, {
   cors: {
-    origin: '*'
-  }
+    origin: 'http://localhost:3000',
+  },
 });
 
 server.get('/health', async () => ({ status: 'ok' }));
@@ -38,7 +46,12 @@ server.ready().then(() => {
 const start = async () => {
   try {
     const port = Number(process.env.PORT) || 4000;
-    await server.listen({ port, host: '0.0.0.0' });
+
+    await server.listen({
+      port,
+      host: '0.0.0.0',
+    });
+
     server.log.info(`API listening on ${port}`);
   } catch (err) {
     server.log.error(err);
