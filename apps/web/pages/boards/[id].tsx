@@ -5,10 +5,15 @@ import { getAccessToken } from '../../src/utils/auth';
 import { initSocket, joinBoard, leaveBoard, getSocket } from '../../src/hooks/useSocket';
 import Nav from '../../src/components/Nav';
 
-export default function BoardView() {
+type User = { id: string; name: string; email?: string };
+type Card = { id: string; title: string; description?: string; order: number; columnId: string };
+type Column = { id: string; title: string; order: number; boardId: string; cards?: Card[] };
+type Board = { id: string; title: string; columns?: Column[]; members?: User[] };
+
+export default function BoardView(): JSX.Element {
   const router = useRouter();
   const { id } = router.query;
-  const [board, setBoard] = useState<any | null>(null);
+  const [board, setBoard] = useState<Board | null>(null);
   const [colTitle, setColTitle] = useState('');
   const [creatingCol, setCreatingCol] = useState(false);
 
@@ -18,7 +23,7 @@ export default function BoardView() {
       try {
         const token = getAccessToken();
         const res = await api.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
-        const target = (res.data || []).find((b: any) => b.id === id);
+        const target = (res.data || []).find((b: Board) => b.id === id);
         setBoard(target || null);
         initSocket(token || undefined);
         joinBoard(String(id));
@@ -37,39 +42,39 @@ export default function BoardView() {
     const s = getSocket();
     if (!s) return;
 
-    function onColumnCreated(data: any) {
+    function onColumnCreated(data: Column) {
       setBoard((prev: any) => {
         if (!prev) return prev;
         return { ...prev, columns: [...(prev.columns || []), { ...data, cards: [] }] };
       });
     }
 
-    function onCardCreated(data: any) {
+    function onCardCreated(data: Card) {
       setBoard((prev: any) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: any) =>
+        const cols = (prev.columns || []).map((c: Column) =>
           c.id === data.columnId ? { ...c, cards: [...(c.cards || []), data] } : c
         );
         return { ...prev, columns: cols };
       });
     }
 
-    function onCardUpdated(data: any) {
+    function onCardUpdated(data: Card) {
       setBoard((prev: any) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: any) => {
-          return { ...c, cards: (c.cards || []).map((card: any) => (card.id === data.id ? data : card)) };
+        const cols = (prev.columns || []).map((c: Column) => {
+          return { ...c, cards: (c.cards || []).map((card: Card) => (card.id === data.id ? data : card)) };
         });
         return { ...prev, columns: cols };
       });
     }
 
-    function onCardDeleted(data: any) {
+    function onCardDeleted(data: { id: string }) {
       setBoard((prev: any) => {
         if (!prev) return prev;
-        const cols = (prev.columns || []).map((c: any) => ({
+        const cols = (prev.columns || []).map((c: Column) => ({
           ...c,
-          cards: (c.cards || []).filter((card: any) => card.id !== data.id),
+          cards: (c.cards || []).filter((card: Card) => card.id !== data.id),
         }));
         return { ...prev, columns: cols };
       });
@@ -121,6 +126,65 @@ export default function BoardView() {
     }
   }
 
+  async function moveCard(cardId: string, direction: 'left' | 'right') {
+    if (!board) return;
+    let sourceColumn: Column | undefined;
+    let sourceColIndex = -1;
+    for (let i = 0; i < (board.columns || []).length; i++) {
+      const c = board.columns![i];
+      if ((c.cards || []).some((card: Card) => card.id === cardId)) {
+        sourceColumn = c;
+        sourceColIndex = i;
+        break;
+      }
+    }
+    if (!sourceColumn) return;
+    const targetIndex = direction === 'left' ? sourceColIndex - 1 : sourceColIndex + 1;
+    if (targetIndex < 0 || targetIndex >= (board.columns || []).length) return;
+    const targetColumn = board.columns![targetIndex];
+    if (!targetColumn) return;
+
+    setBoard((prev: any) => {
+      if (!prev) return prev;
+      const cols = prev.columns!.map((c: Column) => {
+        if (c.id === sourceColumn!.id) {
+          return { ...c, cards: (c.cards || []).filter((card: Card) => card.id !== cardId) };
+        }
+        if (c.id === targetColumn.id) {
+          const movedCard = (sourceColumn!.cards || []).find((card: Card) => card.id === cardId);
+          return { ...c, cards: [...(c.cards || []), movedCard!] };
+        }
+        return c;
+      });
+      return { ...prev, columns: cols };
+    });
+
+    try {
+      const token = getAccessToken();
+      const order = targetColumn.cards?.length ?? 0;
+      await api.put(
+        `/cards/${cardId}`,
+        { columnId: targetColumn.id, order },
+        { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+      );
+    } catch (err) {
+      console.error('move card failed', err);
+      reloadBoard();
+    }
+  }
+
+  async function reloadBoard() {
+    if (!id) return;
+    try {
+      const token = getAccessToken();
+      const res = await api.get('/boards', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+      const target = (res.data || []).find((b: Board) => b.id === id);
+      setBoard(target || null);
+    } catch (err) {
+      console.error('reload board failed', err);
+    }
+  }
+
   if (!board) return <div style={{ padding: 24 }}>Loading board...</div>;
 
   return (
@@ -134,14 +198,20 @@ export default function BoardView() {
       </form>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        {(board.columns || []).map((col: any) => (
+        {(board.columns || []).map((col: Column) => (
           <section key={col.id} style={{ width: 260, background: '#fff', padding: 8, borderRadius: 6 }}>
             <h3>{col.title}</h3>
             <CreateCardForm columnId={col.id} onCreate={handleCreateCard} />
             <ul>
-              {(col.cards || []).map((card: any) => (
+              {(col.cards || []).map((card: Card) => (
                 <li key={card.id} style={{ marginBottom: 8 }}>
-                  <strong>{card.title}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>{card.title}</strong>
+                    <div>
+                      <button onClick={() => moveCard(card.id, 'left')} style={{ marginRight: 6 }} aria-label="Move left">◀</button>
+                      <button onClick={() => moveCard(card.id, 'right')} aria-label="Move right">▶</button>
+                    </div>
+                  </div>
                   <div style={{ fontSize: 12, color: '#444' }}>{card.description}</div>
                 </li>
               ))}
