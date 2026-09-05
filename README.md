@@ -6,6 +6,10 @@ Real-time Kanban is a TypeScript full-stack application built around a Next.js f
 
 > **Local-first portfolio project:** This repository does not currently claim a public hosted deployment. The project is documented for local evaluation so another developer can clone it, install dependencies, start the API and web applications, and inspect the full-stack implementation.
 
+## Product Preview
+
+A conceptual view of the application as a collaborative project workspace: a board with organized columns and cards, drag-and-drop movement, task actions, authentication-aware navigation, and realtime synchronization between connected users. The interface emphasizes **clarity, fast interaction, optimistic updates, and persistent collaboration**.
+
 ## Features
 
 - User signup and login
