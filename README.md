@@ -4,8 +4,6 @@
 
 Real-time Kanban is a TypeScript full-stack application built around a Next.js frontend and Fastify API. It demonstrates authenticated users, board and card management, Socket.IO realtime communication, optimistic UI updates, persistent data access, and end-to-end browser testing.
 
-> **Local-first portfolio project:** This repository does not currently claim a public hosted deployment. The project is documented for local evaluation so another developer can clone it, install dependencies, start the API and web applications, and inspect the full-stack implementation.
-
 ## Product Preview
 
 A conceptual view of the application as a collaborative project workspace: a board with organized columns and cards, drag-and-drop movement, task actions, authentication-aware navigation, and realtime synchronization between connected users. The interface emphasizes **clarity, fast interaction, optimistic updates, and persistent collaboration**.
@@ -65,7 +63,7 @@ Next.js / React UI
 | Realtime | Socket.IO |
 | HTTP Client | Axios |
 | Testing | Playwright / browser E2E |
-| Package Manager | pnpm |
+| Package manager | pnpm |
 | Runtime | Node.js |
 
 ## Project Structure
@@ -189,13 +187,13 @@ The application includes:
 - Refresh-token handling
 - Protected board operations
 
-Authentication is implemented as part of the portfolio application's backend/frontend flow and should receive additional hardening before production use, including secure secret management, secure cookie configuration, rate limiting, and comprehensive authorization testing.
+Authentication is implemented as part of the application's backend/frontend flow and should receive additional hardening before production use, including secure secret management, secure cookie configuration, rate limiting, and comprehensive authorization testing.
 
 ## Testing
 
 The repository includes Playwright browser tests for important user flows.
 
-The tests are intended to validate browser-level behavior such as authentication and board interactions rather than only isolated functions.
+The tests validate browser-level behavior such as authentication and board interactions rather than only isolated functions.
 
 ## Build
 
@@ -219,11 +217,11 @@ pnpm build
 
 ## Current Status
 
-**Status: Functional full-stack portfolio project.**
+**Functional full-stack application.**
 
 The repository contains the frontend, backend API, authentication flow, board/card functionality, realtime Socket.IO integration, drag-and-drop ordering, and supporting TypeScript configuration.
 
-There is currently no public hosted URL. The intended evaluation path is local execution from the repository.
+There is currently no public hosted URL. The intended way to run the application is locally from the repository.
 
 ## Engineering Focus
 
