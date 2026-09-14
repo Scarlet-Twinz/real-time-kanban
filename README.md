@@ -1,56 +1,48 @@
 # Real-time Collaborative Kanban
 
-**Full-stack collaborative Kanban board with authentication, realtime updates, drag-and-drop ordering, and persistent board data.**
+**Full-stack collaborative Kanban board with authentication, optimistic updates, realtime synchronization, and persistent ordering.**
 
-Real-time Kanban is a TypeScript full-stack application built around a Next.js frontend and Fastify API. It demonstrates authenticated users, board and card management, Socket.IO realtime communication, optimistic UI updates, persistent data access, and end-to-end browser testing.
+This project explores the engineering behind a responsive collaborative board: the UI reacts immediately, the API persists the authoritative state, and Socket.IO propagates the resulting change to connected clients.
 
-## Product Preview
+## Interaction Flow
 
-A conceptual view of the application as a collaborative project workspace: a board with organized columns and cards, drag-and-drop movement, task actions, authentication-aware navigation, and realtime synchronization between connected users. The interface emphasizes **clarity, fast interaction, optimistic updates, and persistent collaboration**.
+```text
+User drag/drop
+      │
+      ▼
+Optimistic UI update
+      │
+      ▼
+Fastify API
+      │
+      ▼
+Prisma / PostgreSQL
+      │
+      ▼
+Socket.IO broadcast
+      │
+      ▼
+Connected clients
+```
+
+Card movement uses a batch reorder operation so the persisted board ordering is updated as a coherent set rather than issuing one request per card.
 
 ## Features
 
-- User signup and login
+- User signup/login
 - JWT authentication and refresh-token flow
 - Protected board routes
-- Board creation and listing
+- Board creation/listing
 - Kanban columns and cards
-- Card creation and movement
-- Drag-and-drop card reordering
-- Batch reorder endpoint for persistent placements
+- Drag-and-drop card movement
+- Persistent card ordering
+- Batch reorder endpoint
 - Optimistic UI updates
-- Socket.IO realtime communication
-- Realtime board updates
-- Fastify backend API
-- Prisma/PostgreSQL data layer
+- Socket.IO realtime events
+- Fastify backend
+- Prisma/PostgreSQL persistence
 - Next.js frontend
-- Playwright end-to-end testing
-
-## Architecture
-
-```text
-Next.js / React UI
-        │
-        ├──── HTTP / JWT ────► Fastify API
-        │                         │
-        │                         ├── Auth
-        │                         ├── Boards
-        │                         └── Card Reordering
-        │                         │
-        │                         ▼
-        │                     Prisma
-        │                         │
-        │                         ▼
-        │                     PostgreSQL
-        │
-        └──── Socket.IO ─────► Realtime Events
-```
-
-## Languages
-
-- **TypeScript** — frontend and backend application code
-
-> JSX/TSX, Node.js, and CSS are part of the development stack; TypeScript is the primary application language for this repository.
+- Playwright browser testing
 
 ## Tech Stack
 
@@ -58,201 +50,74 @@ Next.js / React UI
 | --- | --- |
 | Frontend | Next.js 14, React 18, TypeScript |
 | API | Fastify, TypeScript |
-| Authentication | JWT, refresh tokens |
+| Auth | JWT, refresh tokens |
 | Database | PostgreSQL, Prisma |
 | Realtime | Socket.IO |
-| HTTP Client | Axios |
-| Testing | Playwright / browser E2E |
-| Package manager | pnpm |
+| HTTP | Axios |
+| Testing | Playwright |
 | Runtime | Node.js |
+| Workspace | pnpm |
 
-## Project Structure
+## Repository Structure
 
 ```text
 real-time-kanban/
 ├── apps/
 │   ├── api/
-│   │   ├── src/
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts
-│   │   │   │   └── boards.ts
-│   │   │   ├── index.ts
-│   │   │   └── prisma.ts
-│   │   └── tsconfig.json
-│   │
+│   │   └── src/routes/
 │   └── web/
 │       ├── pages/
-│       │   ├── boards/
-│       │   ├── login.tsx
-│       │   └── signup.tsx
-│       ├── src/
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   └── utils/
-│       ├── styles/
-│       ├── package.json
-│       └── tsconfig.json
+│       ├── src/components/
+│       ├── src/hooks/
+│       └── src/utils/
 ├── package.json
 └── README.md
 ```
 
 ## Getting Started
 
-### Prerequisites
-
-Install:
+Prerequisites:
 
 - Node.js
 - pnpm
 - PostgreSQL
 
-Verify:
-
-```bash
-node --version
-pnpm --version
-```
-
-### 1. Clone
-
 ```bash
 git clone https://github.com/Scarlet-Twinz/real-time-kanban.git
 cd real-time-kanban
-```
-
-### 2. Install dependencies
-
-```bash
 pnpm install
 ```
 
-### 3. Configure the API
+Configure the PostgreSQL connection and JWT settings required by the API, then run the API and web application in separate terminals using the repository's package scripts.
 
-Configure the PostgreSQL connection and JWT settings expected by the API environment.
-
-### 4. Start the API
-
-```bash
-pnpm --filter real-time-kanban dev
-```
-
-The API runs on the configured local port, with the default development setup using port `4000`.
-
-### 5. Start the web application
-
-In another terminal:
-
-```bash
-pnpm --filter web dev
-```
-
-The Next.js application runs at:
-
-```text
-http://localhost:3000
-```
-
-## Realtime Flow
-
-When a user changes a board or card, the frontend communicates with the Fastify API and the realtime layer broadcasts the relevant update to connected clients.
-
-```text
-User action
-    │
-    ▼
-Optimistic UI update
-    │
-    ▼
-API request
-    │
-    ▼
-Database persistence
-    │
-    ▼
-Socket.IO event
-    │
-    ▼
-Connected clients update
-```
-
-For card movement, the frontend sends a batch of card placements so the new ordering can be persisted consistently rather than issuing an independent request for every card.
-
-## Authentication
-
-The application includes:
-
-- Signup
-- Login
-- JWT-based authorization
-- Refresh-token handling
-- Protected board operations
-
-Authentication is implemented as part of the application's backend/frontend flow and should receive additional hardening before production use, including secure secret management, secure cookie configuration, rate limiting, and comprehensive authorization testing.
+The default development web application runs at `http://localhost:3000`; the API uses the configured development port, normally `4000`.
 
 ## Testing
 
-The repository includes Playwright browser tests for important user flows.
-
-The tests validate browser-level behavior such as authentication and board interactions rather than only isolated functions.
-
-## Build
-
-Build the API:
-
-```bash
-pnpm --filter real-time-kanban build
-```
-
-Build the web application:
-
-```bash
-pnpm --filter web build
-```
-
-If your local workspace uses the root build script, you can also run:
-
-```bash
-pnpm build
-```
+The repository includes Playwright browser tests for authentication and board interactions. The tests exercise browser-level behavior rather than only isolated functions.
 
 ## Current Status
 
 **Functional full-stack application.**
 
-The repository contains the frontend, backend API, authentication flow, board/card functionality, realtime Socket.IO integration, drag-and-drop ordering, and supporting TypeScript configuration.
+The repository contains the frontend, backend API, authentication flow, board/card operations, realtime synchronization, drag-and-drop ordering, and E2E testing support.
 
-There is currently no public hosted URL. The intended way to run the application is locally from the repository.
+There is no public hosted URL; the intended usage is local development.
+
+## Production Hardening
+
+Before production use, authentication and infrastructure would need additional controls including secure secret management, secure cookie configuration, authorization testing, rate limiting, TLS, and stronger session handling.
 
 ## Engineering Focus
 
-This project demonstrates:
+This project demonstrates full-stack TypeScript, REST API design, relational persistence, realtime communication, optimistic state updates, batch persistence, and browser-level testing.
 
-- Full-stack TypeScript development
-- REST API design with Fastify
-- Authentication and protected routes
-- Persistent relational data access
-- Realtime application communication with Socket.IO
-- Optimistic frontend state updates
-- Batch persistence for drag-and-drop ordering
-- Browser-level E2E testing
-- Separation between frontend and backend application concerns
+## License
 
-## Security Notes
-
-Never commit:
-
-- Database passwords
-- JWT secrets
-- Refresh tokens
-- `.env` files
-- Production credentials
-
-Use local environment variables for secrets and development configuration.
+MIT
 
 ## Author
 
 **Anthony Emmanuella Mmasinachi**
 
-Full-stack developer focused on frontend engineering, backend systems, APIs, realtime applications, automation, databases, and practical software architecture.
-
-**GitHub Repository:** https://github.com/Scarlet-Twinz/real-time-kanban
+Full-stack and systems engineer focused on application architecture, backend systems, realtime systems, databases, distributed processing, networking, and AI integration.
