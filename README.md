@@ -1,4 +1,4 @@
-# Real-time Collaborative Kanban
+#  Real-time Collaborative Kanban
 
 **Full-stack collaborative Kanban board with authentication, optimistic updates, realtime synchronization, and persistent ordering.**
 
