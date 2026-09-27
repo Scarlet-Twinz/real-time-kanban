@@ -119,9 +119,6 @@ MIT
 
 The README is intended to make the realtime architecture, local setup, and engineering trade-offs clear before someone opens the source.
 
-
-The README is intended to make the realtime architecture, local setup, and engineering trade-offs clear before someone opens the source.
-
 ## Author
 
 **Anthony Emmanuella Mmasinachi**
