@@ -116,6 +116,9 @@ This project demonstrates full-stack TypeScript, REST API design, relational per
 
 MIT
 
+
+The README is intended to make the realtime architecture, local setup, and engineering trade-offs clear before someone opens the source.
+
 ## Author
 
 **Anthony Emmanuella Mmasinachi**
