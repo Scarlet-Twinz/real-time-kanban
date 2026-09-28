@@ -112,15 +112,9 @@ Before production use, authentication and infrastructure would need additional c
 
 This project demonstrates full-stack TypeScript, REST API design, relational persistence, realtime communication, optimistic state updates, batch persistence, and browser-level testing.
 
+
 ## License
 
-MIT
+MIT License.
 
-
-The README is intended to make the realtime architecture, local setup, and engineering trade-offs clear before someone opens the source.
-
-## Author
-
-**Anthony Emmanuella Mmasinachi**
-
-Full-stack and systems engineer focused on application architecture, backend systems, realtime systems, databases, distributed processing, networking, and AI integration.
+See [LICENSE](LICENSE) for the full license text.
